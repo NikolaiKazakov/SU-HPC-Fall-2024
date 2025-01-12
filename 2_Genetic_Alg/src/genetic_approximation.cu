@@ -45,12 +45,12 @@ __global__ void generate_population(Individual* population, curandState* devStat
 }
 
 // Ядро для выполнения мутации
-__global__ void mutate_population(Individual* population, curandState* devStates, int population_size, float mutation_rate) {
+__global__ void mutate_population(Individual* population, curandState* devStates, int population_size, float mutation_rate, float mutation_variance) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < population_size) {
         for (int i = 0; i <= POLYNOMIAL_ORDER; i++) {
             if (curand_uniform(&devStates[idx]) < mutation_rate) {
-                population[idx].coefficients[i] += curand_normal(&devStates[idx]) * 0.1f;
+                population[idx].coefficients[i] += curand_normal(&devStates[idx]) * mutation_variance;
             }
         }
     }
@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
 
         // Кроссовер и мутация
         crossover_population<<<(population_size + 255) / 256, 256>>>(dev_population, devStates, population_size);
-        mutate_population<<<(population_size + 255) / 256, 256>>>(dev_population, devStates, population_size, mutation_mean);
+        mutate_population<<<(population_size + 255) / 256, 256>>>(dev_population, devStates, population_size, mutation_mean, mutation_variance);
         cudaDeviceSynchronize();
     }
 
